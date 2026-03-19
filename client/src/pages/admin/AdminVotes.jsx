@@ -274,6 +274,7 @@ const AdminVotes = () => {
           form={form}
           setForm={setForm}
           onSubmit={() => createMut.mutate(form)}
+          onClose={() => setCreateModal(false)}
           loading={createMut.isPending}
           editMode={false}
           onCancel={() => setCreateModal(false)}
@@ -286,6 +287,7 @@ const AdminVotes = () => {
           form={form}
           setForm={setForm}
           onSubmit={() => updateMut.mutate({ id: editModal, data: form })}
+          onClose={() => setEditModal(null)}
           loading={updateMut.isPending}
           editMode={true}
           onCancel={() => setEditModal(null)}
