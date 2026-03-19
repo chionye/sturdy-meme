@@ -1,0 +1,88 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+const bcrypt = require('bcryptjs');
+
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
+  name: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  email: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    unique: true,
+    validate: { isEmail: true },
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  businessName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    field: 'business_name',
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: false,
+  },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  stateCode: {
+    type: DataTypes.STRING(5),
+    allowNull: false,
+    field: 'state_code',
+  },
+  userCode: {
+    type: DataTypes.STRING(10),
+    allowNull: false,
+    unique: true,
+    field: 'user_code',
+  },
+  status: {
+    type: DataTypes.ENUM('active', 'suspended', 'pending'),
+    defaultValue: 'pending',
+  },
+  votingLink: {
+    type: DataTypes.STRING,
+    field: 'voting_link',
+  },
+  profileImage: {
+    type: DataTypes.STRING,
+    field: 'profile_image',
+  },
+}, {
+  tableName: 'users',
+  timestamps: true,
+  hooks: {
+    beforeCreate: async (user) => {
+      user.password = await bcrypt.hash(user.password, 12);
+    },
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        user.password = await bcrypt.hash(user.password, 12);
+      }
+    },
+  },
+});
+
+User.prototype.validatePassword = async function (password) {
+  return bcrypt.compare(password, this.password);
+};
+
+module.exports = User;
