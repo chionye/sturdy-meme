@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { loginAdmin } from '../api/auth';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft, FiShield } from 'react-icons/fi';
+import Logo from '../components/ui/Logo';
 
 const AdminLogin = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -31,9 +32,7 @@ const AdminLogin = () => {
 
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-800 to-purple-900 mx-auto flex items-center justify-center mb-4">
-              <FiShield className="h-8 w-8 text-white" />
-            </div>
+            <Logo size="lg" className="mx-auto mb-4" />
             <h1 className="text-2xl font-black text-gray-900">Admin Access</h1>
             <p className="text-gray-500 mt-1">EOPANSE Administration Portal</p>
           </div>

@@ -6,6 +6,7 @@ import { registerUser } from '../api/auth';
 import { getRegistrationFee } from '../api/admin';
 import { NIGERIAN_STATES, formatCurrency } from '../utils';
 import { FiArrowLeft, FiUser, FiMail, FiPhone, FiMapPin, FiEye, FiEyeOff, FiBriefcase, FiLock } from 'react-icons/fi';
+import Logo from '../components/ui/Logo';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -94,10 +95,8 @@ const Register = () => {
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-8 text-white">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-                <span className="font-black text-sm">E</span>
-              </div>
+            <div className="flex items-center gap-4 mb-2">
+              <Logo size="md" className="brightness-0 invert" />
               <h1 className="text-2xl font-black">Join EOPANSE</h1>
             </div>
             <p className="text-purple-200">Complete your membership registration</p>

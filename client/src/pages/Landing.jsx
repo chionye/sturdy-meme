@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
+import Logo from '../components/ui/Logo';
 import {
   FiCheckCircle, FiShield, FiTrendingUp, FiUsers, FiAward, FiGlobe,
   FiArrowRight, FiBarChart2, FiClock, FiMail,
@@ -21,14 +22,9 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             {/* Logo/Brand */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-              <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/30">
-                <span className="text-white font-black text-2xl">E</span>
-              </div>
-              <div className="text-left">
-                <h1 className="text-3xl font-black text-white leading-none">EOPANSE</h1>
-                <p className="text-purple-300 text-sm">Event Organizers & Practitioners Association</p>
-              </div>
+            <div className="flex flex-col items-center mb-8">
+              <Logo size="xl" className="brightness-0 invert mb-3" />
+              <p className="text-purple-300 text-sm">Event Organizers & Practitioners Association</p>
             </div>
 
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
@@ -217,12 +213,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
-                  <span className="text-white font-black text-xs">E</span>
-                </div>
-                <span className="font-black text-white text-lg">EOPANSE</span>
-              </div>
+              <Logo size="sm" className="brightness-0 invert mb-4" />
               <p className="text-sm leading-relaxed">
                 The Event Organizers and Practitioners Association of Nigeria South/East.
                 Professional body for event industry excellence.

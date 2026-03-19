@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { loginUser } from '../api/auth';
 import { FiMail, FiLock, FiEye, FiEyeOff, FiArrowLeft } from 'react-icons/fi';
+import Logo from '../components/ui/Logo';
 
 const Login = () => {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -38,9 +39,7 @@ const Login = () => {
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 mx-auto flex items-center justify-center mb-4">
-              <span className="text-white font-black text-xl">E</span>
-            </div>
+            <Logo size="lg" className="mx-auto mb-4" />
             <h1 className="text-2xl font-black text-gray-900">Welcome Back</h1>
             <p className="text-gray-500 mt-1">Sign in to your EOPANSE account</p>
           </div>

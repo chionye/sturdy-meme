@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { FiGrid, FiCheckSquare, FiClock, FiUser, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
+import Logo from '../ui/Logo';
 
 const navItems = [
   { to: '/dashboard', icon: FiGrid, label: 'Dashboard' },
@@ -23,16 +24,9 @@ const UserSidebar = () => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      <div className="p-6 border-b border-purple-800/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
-            <span className="text-white font-black text-sm">E</span>
-          </div>
-          <div>
-            <h1 className="font-black text-white text-lg leading-none">EOPANSE</h1>
-            <p className="text-purple-300 text-xs">Member Portal</p>
-          </div>
-        </div>
+      <div className="p-5 border-b border-purple-800/30">
+        <Logo size="md" className="brightness-0 invert" />
+        <p className="text-purple-300 text-xs mt-1 pl-1">Member Portal</p>
       </div>
 
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
@@ -73,11 +67,11 @@ const UserSidebar = () => {
 
   return (
     <>
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-purple-700 to-indigo-700 h-14 flex items-center px-4">
-        <button onClick={() => setMobileOpen(true)} className="text-white mr-4">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-purple-700 to-indigo-700 h-14 flex items-center px-4 gap-3">
+        <button onClick={() => setMobileOpen(true)} className="text-white">
           <FiMenu className="h-6 w-6" />
         </button>
-        <span className="text-white font-bold">EOPANSE Member</span>
+        <Logo size="xs" className="brightness-0 invert" />
       </div>
 
       {mobileOpen && (

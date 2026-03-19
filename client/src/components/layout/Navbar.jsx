@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMenu, FiX, FiLogIn, FiUserPlus } from 'react-icons/fi';
+import Logo from '../ui/Logo';
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
@@ -11,16 +12,9 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center">
-              <span className="text-white font-black text-sm">E</span>
-            </div>
-            <div className="hidden sm:block">
-              <span className="font-black text-xl bg-gradient-to-r from-purple-700 to-indigo-600 bg-clip-text text-transparent">
-                EOPANSE
-              </span>
-              <p className="text-xs text-gray-500 -mt-1">Voting Portal</p>
-            </div>
+          <Link to="/" className="flex items-center gap-2">
+            <Logo size="sm" />
+            <p className="hidden sm:block text-xs text-gray-500 font-medium">Voting Portal</p>
           </Link>
 
           {/* Desktop nav */}
