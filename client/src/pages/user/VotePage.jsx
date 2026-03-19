@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { usePaystackPayment } from 'react-paystack';
+import usePaystackPayment from '../../hooks/usePaystackPayment';
 import { useAuth } from '../../context/AuthContext';
 import UserSidebar from '../../components/layout/UserSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';

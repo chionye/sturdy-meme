@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { usePaystackPayment } from 'react-paystack';
+import usePaystackPayment from '../hooks/usePaystackPayment';
 import { registerUser, verifyRegistrationPayment } from '../api/auth';
 import { getRegistrationFee } from '../api/admin';
 import { NIGERIAN_STATES, formatCurrency } from '../utils';
