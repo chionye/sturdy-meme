@@ -2,11 +2,90 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { registerUser } from '../api/auth';
+import { usePaystackPayment } from 'react-paystack';
+import { registerUser, verifyRegistrationPayment } from '../api/auth';
 import { getRegistrationFee } from '../api/admin';
 import { NIGERIAN_STATES, formatCurrency } from '../utils';
 import { FiArrowLeft, FiUser, FiMail, FiPhone, FiMapPin, FiEye, FiEyeOff, FiBriefcase, FiLock } from 'react-icons/fi';
 import Logo from '../components/ui/Logo';
+
+const RegistrationPayment = ({ registered, email, fee, onDone }) => {
+  const [verifying, setVerifying] = useState(false);
+  const [activated, setActivated] = useState(false);
+
+  const config = {
+    reference: registered.paymentRef,
+    email,
+    amount: Math.round(fee * 100), // kobo
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    metadata: { userId: registered.userId, userCode: registered.userCode },
+  };
+
+  const initializePayment = usePaystackPayment(config);
+
+  const handlePayment = () => {
+    initializePayment(
+      async (ref) => {
+        setVerifying(true);
+        try {
+          await verifyRegistrationPayment({ reference: ref.reference, userId: registered.userId });
+          toast.success('Payment confirmed! Account activated.');
+          setActivated(true);
+        } catch (err) {
+          toast.error(err.response?.data?.message || 'Verification failed. Contact admin.');
+        } finally {
+          setVerifying(false);
+        }
+      },
+      () => toast('Payment cancelled. You can pay later by contacting admin.')
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center">
+        {activated ? (
+          <>
+            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
+              <span className="text-green-600 text-4xl">✓</span>
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Account Activated!</h2>
+            <p className="text-gray-600 mb-6">Your payment was confirmed and your account is now active.</p>
+            <button onClick={onDone} className="btn-primary w-full py-3">Go to Login</button>
+          </>
+        ) : (
+          <>
+            <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-6">
+              <span className="text-purple-600 text-4xl">🎉</span>
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 mb-2">Almost Done!</h2>
+            <p className="text-gray-600 mb-6">Complete your registration fee payment to activate your account.</p>
+
+            <div className="bg-purple-50 rounded-xl p-5 mb-6 text-left space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Member Code</span>
+                <span className="font-bold text-purple-700 font-mono">{registered.userCode}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Amount Due</span>
+                <span className="font-bold text-gray-900">{formatCurrency(fee)}</span>
+              </div>
+            </div>
+
+            <button
+              onClick={handlePayment}
+              disabled={verifying}
+              className="btn-primary w-full py-3 mb-3"
+            >
+              {verifying ? 'Verifying Payment...' : `Pay ${formatCurrency(fee)} with Paystack`}
+            </button>
+            <p className="text-xs text-gray-400">Secured by Paystack. Your card details are never stored.</p>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const Register = () => {
   const navigate = useNavigate();
@@ -43,46 +122,7 @@ const Register = () => {
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
   if (registered) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 to-indigo-900 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full text-center">
-          <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-            <span className="text-green-600 text-4xl">✓</span>
-          </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Registration Successful!</h2>
-          <p className="text-gray-600 mb-6">Your application has been received and is pending admin activation.</p>
-
-          <div className="bg-purple-50 rounded-xl p-6 mb-6 text-left">
-            <h3 className="font-bold text-gray-900 mb-4">Your Registration Details</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Member Code</span>
-                <span className="font-bold text-purple-700 text-lg font-mono">{registered.userCode}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Registration Fee</span>
-                <span className="font-bold text-gray-900">{formatCurrency(registered.registrationFee)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Payment Reference</span>
-                <span className="font-mono text-xs text-gray-700">{registered.paymentRef}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-sm text-yellow-800">
-            <p className="font-semibold mb-1">Next Steps:</p>
-            <ol className="text-left space-y-1 list-decimal list-inside">
-              <li>Make payment of {formatCurrency(fee)} using ref: <strong>{registered.paymentRef}</strong></li>
-              <li>Contact admin to confirm your payment</li>
-              <li>You'll receive an email once your account is activated</li>
-            </ol>
-          </div>
-
-          <Link to="/login" className="btn-primary w-full text-center block">Go to Login</Link>
-        </div>
-      </div>
-    );
+    return <RegistrationPayment registered={registered} email={form.email} fee={fee} onDone={() => navigate('/login')} />;
   }
 
   return (

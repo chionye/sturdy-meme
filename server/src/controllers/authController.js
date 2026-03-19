@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const { User, Admin, Payment } = require('../models');
 const { getStateCode } = require('../config/states');
 const { sendWelcomeEmail, sendRegistrationPendingEmail } = require('../services/emailService');
+const { verifyPayment } = require('../services/paystackService');
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 
@@ -63,7 +64,8 @@ const registerUser = async (req, res) => {
     await sendRegistrationPendingEmail(user);
 
     res.status(201).json({
-      message: 'Registration successful. Await admin activation.',
+      message: 'Registration successful. Complete payment to activate your account.',
+      userId: user.id,
       userCode,
       registrationFee: parseFloat(process.env.REGISTRATION_FEE || 5000),
       paymentRef: ref,
@@ -165,4 +167,40 @@ const getAdminMe = async (req, res) => {
   res.json({ id: admin.id, name: admin.name, email: admin.email, role: admin.role });
 };
 
-module.exports = { registerUser, loginUser, loginAdmin, getMe, getAdminMe };
+// Verify Paystack registration payment and activate account
+const verifyRegistrationPayment = async (req, res) => {
+  try {
+    const { reference, userId } = req.body;
+    if (!reference || !userId) return res.status(400).json({ message: 'reference and userId required' });
+
+    const result = await verifyPayment(reference);
+    if (!result.status || result.data?.status !== 'success') {
+      return res.status(400).json({ message: 'Payment not successful. Please try again.' });
+    }
+
+    const amountPaid = result.data.amount / 100; // Paystack returns kobo
+    const expectedFee = parseFloat(process.env.REGISTRATION_FEE || 5000);
+    if (amountPaid < expectedFee) {
+      return res.status(400).json({ message: `Incomplete payment. Expected ${expectedFee}, got ${amountPaid}` });
+    }
+
+    // Update payment record
+    await Payment.update(
+      { status: 'completed', reference },
+      { where: { userId, type: 'registration', status: 'pending' } }
+    );
+
+    // Activate user
+    await User.update({ status: 'active' }, { where: { id: userId } });
+
+    const user = await User.findByPk(userId);
+    await sendWelcomeEmail(user);
+
+    res.json({ message: 'Payment verified! Your account is now active.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Verification failed', error: err.message });
+  }
+};
+
+module.exports = { registerUser, loginUser, loginAdmin, getMe, getAdminMe, verifyRegistrationPayment };

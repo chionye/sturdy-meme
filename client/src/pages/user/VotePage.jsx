@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { usePaystackPayment } from 'react-paystack';
+import { useAuth } from '../../context/AuthContext';
 import UserSidebar from '../../components/layout/UserSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Badge from '../../components/ui/Badge';
@@ -15,9 +17,11 @@ const VotePage = () => {
   const { token } = useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [selectedOption, setSelectedOption] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [voted, setVoted] = useState(false);
+  const [pendingRef, setPendingRef] = useState(null);
 
   const { data: voteData, isLoading } = useQuery({
     queryKey: ['vote-detail', token],
@@ -45,10 +49,31 @@ const VotePage = () => {
   const vote = voteData?.data;
   const leaderboard = lbData?.data?.leaderboard || [];
   const totalVotes = lbData?.data?.totalVotes || 0;
+  const cost = vote && !vote.isFree ? vote.pricePerVote * quantity : 0;
+
+  const paystackConfig = {
+    email: user?.email || '',
+    amount: Math.round(cost * 100), // kobo
+    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
+    metadata: { voteId: vote?.id, voteOptionId: selectedOption, quantity },
+  };
+  const initializePayment = usePaystackPayment(paystackConfig);
 
   const handleVote = () => {
     if (!selectedOption) { toast.error('Please select an option'); return; }
-    castMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity });
+
+    if (vote.isFree) {
+      castMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity });
+      return;
+    }
+
+    // Paid vote — open Paystack
+    initializePayment(
+      (ref) => {
+        castMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity, transactionRef: ref.reference });
+      },
+      () => toast('Payment cancelled')
+    );
   };
 
   if (isLoading) return (
@@ -67,7 +92,6 @@ const VotePage = () => {
 
   const isActive = vote.status === 'active';
   const isEnded = vote.status === 'ended';
-  const cost = vote.isFree ? 0 : vote.pricePerVote * quantity;
 
   return (
     <div className="flex min-h-screen bg-gray-50">

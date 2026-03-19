@@ -1,6 +1,7 @@
 const { Vote, VoteOption, VoteRecord, User, Payment, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { v4: uuidv4 } = require('uuid');
+const { verifyPayment } = require('../services/paystackService');
 
 // Get all active/upcoming votes for users
 const getPublicVotes = async (req, res) => {
@@ -68,17 +69,33 @@ const castVote = async (req, res) => {
 
     const amount = vote.isFree ? 0 : vote.pricePerVote * quantity;
 
-    // If paid vote, verify payment
+    // If paid vote, verify payment via Paystack
     if (!vote.isFree && amount > 0) {
       if (!transactionRef) {
         return res.status(400).json({ message: 'Payment reference required' });
       }
-      // Mark payment as vote payment
+
+      const paystackResult = await verifyPayment(transactionRef);
+      if (!paystackResult.status || paystackResult.data?.status !== 'success') {
+        return res.status(400).json({ message: 'Payment verification failed. Please complete payment first.' });
+      }
+
+      const amountPaid = paystackResult.data.amount / 100;
+      if (amountPaid < amount) {
+        return res.status(400).json({ message: `Incomplete payment. Expected ₦${amount}, got ₦${amountPaid}` });
+      }
+
+      // Prevent double-use of same reference
+      const existing = await Payment.findOne({ where: { reference: transactionRef } });
+      if (existing) {
+        return res.status(400).json({ message: 'Payment reference already used' });
+      }
+
       await Payment.create({
         userId,
         amount,
         type: 'vote',
-        reference: transactionRef || `VOTE-${Date.now()}-${userId}`,
+        reference: transactionRef,
         status: 'completed',
         description: `Vote: ${vote.title}`,
         metadata: { voteId, voteOptionId },
