@@ -10,13 +10,114 @@ import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import Pagination from '../../components/ui/Pagination';
 import { getVotes, createVote, updateVote, deleteVote } from '../../api/admin';
 import { formatDate, formatCurrency, timeRemaining } from '../../utils';
-import { FiPlus, FiEdit, FiTrash2, FiEye, FiBarChart2, FiLink, FiCopy } from 'react-icons/fi';
+import { FiPlus, FiEdit, FiTrash2, FiBarChart2, FiCopy } from 'react-icons/fi';
 
 const emptyVote = {
   title: '', description: '', startDate: '', endDate: '', pricePerVote: '', isFree: false,
   maxVotesPerUser: '', category: '', status: 'draft',
   options: [{ title: '', description: '', image: '' }, { title: '', description: '', image: '' }],
 };
+
+const VoteForm = ({ form, setForm, onSubmit, loading, editMode, onCancel }) => (
+  <div className="space-y-5">
+    <div className="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="Vote title" required />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+        <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input-field" placeholder="e.g. Awards, Elections" />
+      </div>
+    </div>
+
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+      <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input-field resize-none" rows={3} placeholder="Vote description" />
+    </div>
+
+    <div className="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+        <input type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="input-field" required />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
+        <input type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="input-field" required />
+      </div>
+    </div>
+
+    <div className="grid sm:grid-cols-3 gap-4">
+      <div className="col-span-2">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Price per Vote (₦)</label>
+        <input type="number" value={form.pricePerVote} onChange={(e) => setForm({ ...form, pricePerVote: e.target.value })}
+          className="input-field" placeholder="0" disabled={form.isFree} min="0" />
+      </div>
+      <div className="flex items-end pb-1">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={form.isFree} onChange={(e) => setForm({ ...form, isFree: e.target.checked, pricePerVote: e.target.checked ? 0 : form.pricePerVote })}
+            className="w-4 h-4 text-primary-600 rounded" />
+          <span className="text-sm font-medium text-gray-700">Free Vote</span>
+        </label>
+      </div>
+    </div>
+
+    <div className="grid sm:grid-cols-2 gap-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Max Votes per User</label>
+        <input type="number" value={form.maxVotesPerUser} onChange={(e) => setForm({ ...form, maxVotesPerUser: e.target.value })}
+          className="input-field" placeholder="Unlimited" min="1" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input-field">
+          <option value="draft">Draft</option>
+          <option value="active">Active</option>
+          <option value="ended">Ended</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+    </div>
+
+    {!editMode && (
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <label className="block text-sm font-semibold text-gray-700">Vote Options (min. 2) *</label>
+          <button type="button" onClick={() => setForm({ ...form, options: [...form.options, { title: '', description: '', image: '' }] })} className="text-sm text-primary-600 hover:underline font-medium">+ Add Option</button>
+        </div>
+        <div className="space-y-3">
+          {form.options.map((opt, i) => {
+            const updateOption = (key, val) => {
+              const opts = [...form.options];
+              opts[i] = { ...opts[i], [key]: val };
+              setForm({ ...form, options: opts });
+            };
+            return (
+              <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-700">Option {i + 1}</span>
+                  {form.options.length > 2 && (
+                    <button type="button" onClick={() => setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) })} className="text-red-500 hover:text-red-700 text-sm">Remove</button>
+                  )}
+                </div>
+                <input value={opt.title} onChange={(e) => updateOption('title', e.target.value)} className="input-field" placeholder="Option title *" required />
+                <input value={opt.description} onChange={(e) => updateOption('description', e.target.value)} className="input-field" placeholder="Description (optional)" />
+                <input value={opt.image} onChange={(e) => updateOption('image', e.target.value)} className="input-field" placeholder="Image URL (optional)" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
+
+    <div className="flex gap-3 pt-2">
+      <button type="button" onClick={onCancel} className="btn-secondary flex-1">Cancel</button>
+      <button type="button" onClick={onSubmit} disabled={loading} className="btn-primary flex-1">
+        {loading ? 'Saving...' : editMode ? 'Update Vote' : 'Create Vote'}
+      </button>
+    </div>
+  </div>
+);
 
 const AdminVotes = () => {
   const qc = useQueryClient();
@@ -53,112 +154,10 @@ const AdminVotes = () => {
 
   const votes = data?.data?.votes || [];
 
-  const addOption = () => setForm({ ...form, options: [...form.options, { title: '', description: '', image: '' }] });
-  const removeOption = (i) => setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) });
-  const updateOption = (i, key, val) => {
-    const opts = [...form.options];
-    opts[i] = { ...opts[i], [key]: val };
-    setForm({ ...form, options: opts });
-  };
-
   const copyShareLink = (vote) => {
     const link = `${window.location.origin}/vote/${vote.shareToken}`;
     navigator.clipboard.writeText(link).then(() => toast.success('Share link copied!'));
   };
-
-  const VoteForm = ({ onSubmit, loading, editMode }) => (
-    <div className="space-y-5">
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
-          <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" placeholder="Vote title" required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <input value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="input-field" placeholder="e.g. Awards, Elections" />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input-field resize-none" rows={3} placeholder="Vote description" />
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
-          <input type="datetime-local" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} className="input-field" required />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
-          <input type="datetime-local" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="input-field" required />
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-3 gap-4">
-        <div className="col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Price per Vote (₦)</label>
-          <input type="number" value={form.pricePerVote} onChange={(e) => setForm({ ...form, pricePerVote: e.target.value })}
-            className="input-field" placeholder="0" disabled={form.isFree} min="0" />
-        </div>
-        <div className="flex items-end pb-1">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" checked={form.isFree} onChange={(e) => setForm({ ...form, isFree: e.target.checked, pricePerVote: e.target.checked ? 0 : form.pricePerVote })}
-              className="w-4 h-4 text-primary-600 rounded" />
-            <span className="text-sm font-medium text-gray-700">Free Vote</span>
-          </label>
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Max Votes per User</label>
-          <input type="number" value={form.maxVotesPerUser} onChange={(e) => setForm({ ...form, maxVotesPerUser: e.target.value })}
-            className="input-field" placeholder="Unlimited" min="1" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input-field">
-            <option value="draft">Draft</option>
-            <option value="active">Active</option>
-            <option value="ended">Ended</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
-      </div>
-
-      {!editMode && (
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-semibold text-gray-700">Vote Options (min. 2) *</label>
-            <button type="button" onClick={addOption} className="text-sm text-primary-600 hover:underline font-medium">+ Add Option</button>
-          </div>
-          <div className="space-y-3">
-            {form.options.map((opt, i) => (
-              <div key={i} className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-700">Option {i + 1}</span>
-                  {form.options.length > 2 && (
-                    <button type="button" onClick={() => removeOption(i)} className="text-red-500 hover:text-red-700 text-sm">Remove</button>
-                  )}
-                </div>
-                <input value={opt.title} onChange={(e) => updateOption(i, 'title', e.target.value)} className="input-field" placeholder="Option title *" required />
-                <input value={opt.description} onChange={(e) => updateOption(i, 'description', e.target.value)} className="input-field" placeholder="Description (optional)" />
-                <input value={opt.image} onChange={(e) => updateOption(i, 'image', e.target.value)} className="input-field" placeholder="Image URL (optional)" />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex gap-3 pt-2">
-        <button type="button" onClick={() => { setCreateModal(false); setEditModal(null); }} className="btn-secondary flex-1">Cancel</button>
-        <button type="button" onClick={onSubmit} disabled={loading} className="btn-primary flex-1">
-          {loading ? 'Saving...' : editMode ? 'Update Vote' : 'Create Vote'}
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -272,18 +271,24 @@ const AdminVotes = () => {
       {/* Create Modal */}
       <Modal isOpen={createModal} onClose={() => setCreateModal(false)} title="Create New Vote" size="lg">
         <VoteForm
+          form={form}
+          setForm={setForm}
           onSubmit={() => createMut.mutate(form)}
           loading={createMut.isPending}
           editMode={false}
+          onCancel={() => setCreateModal(false)}
         />
       </Modal>
 
       {/* Edit Modal */}
       <Modal isOpen={!!editModal} onClose={() => setEditModal(null)} title="Edit Vote" size="lg">
         <VoteForm
+          form={form}
+          setForm={setForm}
           onSubmit={() => updateMut.mutate({ id: editModal, data: form })}
           loading={updateMut.isPending}
           editMode={true}
+          onCancel={() => setEditModal(null)}
         />
       </Modal>
 

@@ -43,16 +43,18 @@ const AdminUsers = () => {
     enabled: !!viewUser,
   });
 
+  const [pendingStatusId, setPendingStatusId] = useState(null);
+
   const suspendMut = useMutation({
     mutationFn: (id) => suspendUser(id),
-    onSuccess: () => { toast.success('User suspended'); qc.invalidateQueries(['admin-users']); },
-    onError: (e) => toast.error(e.response?.data?.message),
+    onSuccess: () => { toast.success('User suspended'); qc.invalidateQueries(['admin-users']); setPendingStatusId(null); },
+    onError: (e) => { toast.error(e.response?.data?.message); setPendingStatusId(null); },
   });
 
   const activateMut = useMutation({
     mutationFn: (id) => activateUser(id),
-    onSuccess: () => { toast.success('User activated'); qc.invalidateQueries(['admin-users']); },
-    onError: (e) => toast.error(e.response?.data?.message),
+    onSuccess: () => { toast.success('User activated'); qc.invalidateQueries(['admin-users']); setPendingStatusId(null); },
+    onError: (e) => { toast.error(e.response?.data?.message); setPendingStatusId(null); },
   });
 
   const deleteMut = useMutation({
@@ -156,12 +158,14 @@ const AdminUsers = () => {
                             <button onClick={() => { setEditUser(user.id); setEditForm({ name: user.name, email: user.email, phone: user.phone, businessName: user.businessName, city: user.city, state: user.state, status: user.status }); }} className="p-1.5 hover:bg-purple-50 text-purple-600 rounded-lg transition-colors" title="Edit">
                               <FiEdit className="h-4 w-4" />
                             </button>
-                            {user.status === 'active' ? (
-                              <button onClick={() => suspendMut.mutate(user.id)} className="p-1.5 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors" title="Suspend">
+                            {pendingStatusId === user.id ? (
+                              <span className="p-1.5"><div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" /></span>
+                            ) : user.status === 'active' ? (
+                              <button onClick={() => { setPendingStatusId(user.id); suspendMut.mutate(user.id); }} className="p-1.5 hover:bg-orange-50 text-orange-600 rounded-lg transition-colors" title="Suspend">
                                 <FiSlash className="h-4 w-4" />
                               </button>
                             ) : (
-                              <button onClick={() => activateMut.mutate(user.id)} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors" title="Activate">
+                              <button onClick={() => { setPendingStatusId(user.id); activateMut.mutate(user.id); }} className="p-1.5 hover:bg-green-50 text-green-600 rounded-lg transition-colors" title="Activate">
                                 <FiUserCheck className="h-4 w-4" />
                               </button>
                             )}
