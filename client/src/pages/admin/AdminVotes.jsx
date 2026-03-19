@@ -18,41 +18,7 @@ const emptyVote = {
   options: [{ title: '', description: '', image: '' }, { title: '', description: '', image: '' }],
 };
 
-const AdminVotes = () => {
-  const qc = useQueryClient();
-  const [page, setPage] = useState(1);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [createModal, setCreateModal] = useState(false);
-  const [editModal, setEditModal] = useState(null);
-  const [deleteModal, setDeleteModal] = useState(null);
-  const [form, setForm] = useState(emptyVote);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-votes', page, statusFilter],
-    queryFn: () => getVotes({ page, limit: 15, status: statusFilter }),
-    keepPreviousData: true,
-  });
-
-  const createMut = useMutation({
-    mutationFn: createVote,
-    onSuccess: () => { toast.success('Vote created!'); qc.invalidateQueries(['admin-votes']); setCreateModal(false); setForm(emptyVote); },
-    onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
-  });
-
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }) => updateVote(id, data),
-    onSuccess: () => { toast.success('Vote updated!'); qc.invalidateQueries(['admin-votes']); setEditModal(null); },
-    onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: (id) => deleteVote(id),
-    onSuccess: () => { toast.success('Vote deleted!'); qc.invalidateQueries(['admin-votes']); setDeleteModal(null); },
-    onError: (e) => toast.error(e.response?.data?.message),
-  });
-
-  const votes = data?.data?.votes || [];
-
+const VoteForm = ({ form, setForm, onSubmit, onClose, loading, editMode }) => {
   const addOption = () => setForm({ ...form, options: [...form.options, { title: '', description: '', image: '' }] });
   const removeOption = (i) => setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) });
   const updateOption = (i, key, val) => {
@@ -61,12 +27,7 @@ const AdminVotes = () => {
     setForm({ ...form, options: opts });
   };
 
-  const copyShareLink = (vote) => {
-    const link = `${window.location.origin}/vote/${vote.shareToken}`;
-    navigator.clipboard.writeText(link).then(() => toast.success('Share link copied!'));
-  };
-
-  const VoteForm = ({ onSubmit, loading, editMode }) => (
+  return (
     <div className="space-y-5">
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
@@ -152,13 +113,54 @@ const AdminVotes = () => {
       )}
 
       <div className="flex gap-3 pt-2">
-        <button type="button" onClick={() => { setCreateModal(false); setEditModal(null); }} className="btn-secondary flex-1">Cancel</button>
+        <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
         <button type="button" onClick={onSubmit} disabled={loading} className="btn-primary flex-1">
           {loading ? 'Saving...' : editMode ? 'Update Vote' : 'Create Vote'}
         </button>
       </div>
     </div>
   );
+};
+
+const AdminVotes = () => {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [createModal, setCreateModal] = useState(false);
+  const [editModal, setEditModal] = useState(null);
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [form, setForm] = useState(emptyVote);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-votes', page, statusFilter],
+    queryFn: () => getVotes({ page, limit: 15, status: statusFilter }),
+    keepPreviousData: true,
+  });
+
+  const createMut = useMutation({
+    mutationFn: createVote,
+    onSuccess: () => { toast.success('Vote created!'); qc.invalidateQueries(['admin-votes']); setCreateModal(false); setForm(emptyVote); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, data }) => updateVote(id, data),
+    onSuccess: () => { toast.success('Vote updated!'); qc.invalidateQueries(['admin-votes']); setEditModal(null); },
+    onError: (e) => toast.error(e.response?.data?.message || 'Failed'),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id) => deleteVote(id),
+    onSuccess: () => { toast.success('Vote deleted!'); qc.invalidateQueries(['admin-votes']); setDeleteModal(null); },
+    onError: (e) => toast.error(e.response?.data?.message),
+  });
+
+  const votes = data?.data?.votes || [];
+
+  const copyShareLink = (vote) => {
+    const link = `${window.location.origin}/vote/${vote.shareToken}`;
+    navigator.clipboard.writeText(link).then(() => toast.success('Share link copied!'));
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -272,7 +274,10 @@ const AdminVotes = () => {
       {/* Create Modal */}
       <Modal isOpen={createModal} onClose={() => setCreateModal(false)} title="Create New Vote" size="lg">
         <VoteForm
+          form={form}
+          setForm={setForm}
           onSubmit={() => createMut.mutate(form)}
+          onClose={() => setCreateModal(false)}
           loading={createMut.isPending}
           editMode={false}
         />
@@ -281,7 +286,10 @@ const AdminVotes = () => {
       {/* Edit Modal */}
       <Modal isOpen={!!editModal} onClose={() => setEditModal(null)} title="Edit Vote" size="lg">
         <VoteForm
+          form={form}
+          setForm={setForm}
           onSubmit={() => updateMut.mutate({ id: editModal, data: form })}
+          onClose={() => setEditModal(null)}
           loading={updateMut.isPending}
           editMode={true}
         />
