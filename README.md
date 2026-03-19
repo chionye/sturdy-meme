@@ -171,25 +171,36 @@ REGISTRATION_FEE=5000
 CREATE DATABASE eopanse_db;
 ```
 
-### 4. Install dependencies & start backend
+### 4. Install all dependencies
 ```bash
-cd server
-npm install
+npm run install:all
+```
+
+### 5. Start the app
+```bash
 npm run dev
 ```
+
+This starts both the backend (port 5000) and frontend (port 5173) simultaneously.
 
 > On first run, a default admin account is auto-created:
 > - **Email:** `admin@eopanse.com.ng`
 > - **Password:** `Admin@2024`
 
-The database tables are created automatically via Sequelize sync.
+Database tables are created automatically via Sequelize sync.
 
-### 5. Install dependencies & start frontend
-```bash
-cd client
-npm install
-npm run dev
-```
+---
+
+### Available scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run install:all` | Install dependencies for both server and client |
+| `npm run dev` | Start both server and client concurrently |
+| `npm run dev:server` | Start backend only |
+| `npm run dev:client` | Start frontend only |
+| `npm run build` | Build frontend for production |
+| `npm start` | Start backend in production mode |
 
 Frontend runs at: `http://localhost:5173`
 Backend runs at: `http://localhost:5000`
