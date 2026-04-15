@@ -170,7 +170,7 @@ const getUserVotingLink = async (req, res) => {
 
 const createVote = async (req, res) => {
   try {
-    const { title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, category, options } = req.body;
+    const { title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, category, options, allowNonMembers, nonMemberPricePerVote, nonMemberIsFree } = req.body;
 
     if (!title || !startDate || !endDate || !options || options.length < 2) {
       return res.status(400).json({ message: 'Title, dates and at least 2 options are required' });
@@ -186,7 +186,10 @@ const createVote = async (req, res) => {
       maxVotesPerUser: maxVotesPerUser || null,
       category,
       adminId: req.admin.id,
-      status: 'draft',
+      status: req.body.status || 'draft',
+      allowNonMembers: !!allowNonMembers,
+      nonMemberPricePerVote: allowNonMembers && !nonMemberIsFree ? parseFloat(nonMemberPricePerVote || 0) : 0,
+      nonMemberIsFree: allowNonMembers ? !!nonMemberIsFree : true,
     });
 
     const createdOptions = await VoteOption.bulkCreate(
@@ -259,8 +262,8 @@ const updateVote = async (req, res) => {
     const vote = await Vote.findByPk(req.params.id);
     if (!vote) return res.status(404).json({ message: 'Vote not found' });
 
-    const { title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, status, category } = req.body;
-    await vote.update({ title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, status, category });
+    const { title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, status, category, allowNonMembers, nonMemberPricePerVote, nonMemberIsFree } = req.body;
+    await vote.update({ title, description, startDate, endDate, pricePerVote, isFree, maxVotesPerUser, status, category, allowNonMembers, nonMemberPricePerVote, nonMemberIsFree });
     res.json({ message: 'Vote updated', vote });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -307,6 +310,7 @@ const getVoteResults = async (req, res) => {
           id: opt.id,
           title: opt.title,
           image: opt.image,
+          shareToken: opt.shareToken,
           votes: voteCount,
           revenue,
           topVoters,

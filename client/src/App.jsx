@@ -8,6 +8,8 @@ import Login from './pages/Login';
 import AdminLogin from './pages/AdminLogin';
 import Register from './pages/Register';
 import VoteLinkPage from './pages/VoteLinkPage';
+import PublicVotePage from './pages/PublicVotePage';
+import ContestantLinkPage from './pages/ContestantLinkPage';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -58,7 +60,8 @@ const AppRoutes = () => {
       <Route path="/register" element={user ? <Navigate to="/dashboard" /> : <Register />} />
       <Route path="/admin/login" element={admin ? <Navigate to="/admin/dashboard" /> : <AdminLogin />} />
       <Route path="/vote-link/:token" element={<VoteLinkPage />} />
-      <Route path="/vote/:token" element={<ProtectedUser><VotePage /></ProtectedUser>} />
+      <Route path="/vote/o/:optionToken" element={<ContestantLinkPage />} />
+      <Route path="/vote/:token" element={<PublicVotePage />} />
 
       {/* User Dashboard */}
       <Route path="/dashboard" element={<ProtectedUser><UserDashboard /></ProtectedUser>} />

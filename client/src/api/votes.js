@@ -6,3 +6,5 @@ export const castVote = (data) => api.post('/votes/cast', data);
 export const getVoteHistory = () => api.get('/votes/history');
 export const getLeaderboard = (id) => api.get(`/votes/${id}/leaderboard`);
 export const resolveVotingLink = (token) => api.get(`/votes/voting-link/${token}`);
+export const castPublicVote = (data) => api.post('/votes/cast/public', data);
+export const resolveOptionToken = (optionToken) => api.get(`/votes/option/${optionToken}`);

@@ -1,129 +1,234 @@
-import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
-import { useAuth } from '../../context/AuthContext';
-import UserSidebar from '../../components/layout/UserSidebar';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import Badge from '../../components/ui/Badge';
-import { getVoteByToken, castVote, getLeaderboard } from '../../api/votes';
-import { formatCurrency, formatDate, timeRemaining } from '../../utils';
-import { FiArrowLeft, FiCheckCircle, FiClock, FiBarChart2, FiAward } from 'react-icons/fi';
-import { FLW_PUBLIC_KEY } from '../../constants/config';
+import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Badge from '../components/ui/Badge';
+import { getVoteByToken, castVote, castPublicVote, getLeaderboard } from '../api/votes';
+import { formatCurrency, formatDate, timeRemaining } from '../utils';
+import { FiCheckCircle, FiClock, FiBarChart2, FiAward, FiLock } from 'react-icons/fi';
+import { FLW_PUBLIC_KEY } from '../constants/config';
 
 const COLORS = ['#7c3aed', '#4f46e5', '#0891b2', '#059669', '#d97706'];
 
-const VotePage = () => {
+const PublicVotePage = () => {
   const { token } = useParams();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
-  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [selectedOption, setSelectedOption] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [voted, setVoted] = useState(false);
-  const [pendingRef, setPendingRef] = useState(null);
+  const [voterEmail, setVoterEmail] = useState('');
 
   const { data: voteData, isLoading } = useQuery({
-    queryKey: ['vote-detail', token],
+    queryKey: ['public-vote-detail', token],
     queryFn: () => getVoteByToken(token),
   });
 
+  const vote = voteData?.data;
+
+  // Pre-select option from contestant link
+  useEffect(() => {
+    const optionId = searchParams.get('option');
+    if (optionId && vote?.options) {
+      const match = vote.options.find((o) => o.id === parseInt(optionId));
+      if (match) setSelectedOption(match.id);
+    }
+  }, [vote, searchParams]);
+
   const { data: lbData, refetch: refetchLb } = useQuery({
-    queryKey: ['vote-leaderboard', voteData?.data?.id],
-    queryFn: () => getLeaderboard(voteData?.data?.id),
-    enabled: !!voteData?.data?.id,
+    queryKey: ['public-vote-leaderboard', vote?.id],
+    queryFn: () => getLeaderboard(vote?.id),
+    enabled: !!vote?.id,
     refetchInterval: 10000,
   });
 
-  const castMut = useMutation({
-    mutationFn: castVote,
-    onSuccess: () => {
-      toast.success('Your vote has been cast!');
-      setVoted(true);
-      refetchLb();
-      qc.invalidateQueries(['user-votes']);
-    },
-    onError: (e) => toast.error(e.response?.data?.message || 'Vote failed'),
-  });
-
-  const vote = voteData?.data;
   const leaderboard = lbData?.data?.leaderboard || [];
   const totalVotes = lbData?.data?.totalVotes || 0;
-  const cost = vote && !vote.isFree ? vote.pricePerVote * quantity : 0;
+
+  // Determine pricing based on membership
+  const isMember = !!user;
+  const isFreeForUser = isMember ? vote?.isFree : vote?.nonMemberIsFree;
+  const priceForUser = isMember ? vote?.pricePerVote : vote?.nonMemberPricePerVote;
+  const cost = vote && !isFreeForUser ? priceForUser * quantity : 0;
+  const emailForPaystack = isMember ? user?.email : voterEmail;
 
   const fwConfig = {
     public_key: FLW_PUBLIC_KEY,
     tx_ref: `vote-${vote?.id}-${Date.now()}`,
     amount: cost,
-    currency: 'NGN',
-    payment_options: 'card,ussd,mobilemoneyghana',
+    currency: "NGN",
+    payment_options: "card,ussd,mobilemoneyghana",
     customer: {
-      email: user?.email || '',
-      name: user?.name || '',
+      email: emailForPaystack || "",
+      name: isMember ? user?.name : "Guest Voter",
     },
     customizations: {
-      title: 'EOPANSE Voting',
+      title: "EOPANSE Voting",
       description: `Vote for contestant in ${vote?.title}`,
     },
     callback: (response) => {
-      if (response.status === 'successful' || response.status === 'completed') {
-        castMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity, transactionRef: String(response.transaction_id) });
+      if (response.status === "successful" || response.status === "completed") {
+        if (isMember) {
+          memberCastMut.mutate({
+            voteId: vote.id,
+            voteOptionId: selectedOption,
+            quantity,
+            transactionRef: String(response.transaction_id),
+          });
+        } else {
+          publicCastMut.mutate({
+            voteId: vote.id,
+            voteOptionId: selectedOption,
+            quantity,
+            transactionRef: String(response.transaction_id),
+            voterEmail,
+          });
+        }
         closePaymentModal();
       }
     },
     onClose: () => {
-      toast('Payment cancelled');
+      toast("Payment cancelled");
     },
   };
+
+  const memberCastMut = useMutation({
+    mutationFn: castVote,
+    onSuccess: () => {
+      toast.success('Your vote has been cast!');
+      setVoted(true);
+      refetchLb();
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Vote failed'),
+  });
+
+  const publicCastMut = useMutation({
+    mutationFn: castPublicVote,
+    onSuccess: () => {
+      toast.success('Your vote has been cast!');
+      setVoted(true);
+      refetchLb();
+    },
+    onError: (e) => toast.error(e.response?.data?.message || 'Vote failed'),
+  });
+
+  const castMut = isMember ? memberCastMut : publicCastMut;
 
   const handleVote = () => {
     if (!selectedOption) { toast.error('Please select an option'); return; }
 
-    if (vote.isFree) {
-      castMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity });
+    if (!isMember && !isFreeForUser && !voterEmail) {
+      toast.error('Please enter your email address');
+      return;
+    }
+
+    if (isFreeForUser) {
+      if (isMember) {
+        memberCastMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity });
+      } else {
+        publicCastMut.mutate({ voteId: vote.id, voteOptionId: selectedOption, quantity, voterEmail: voterEmail || undefined });
+      }
+      return;
+    }
+
+    if (!emailForPaystack) {
+      toast.error('Please enter your email address');
+      return;
     }
   };
 
-  if (isLoading) return (
-    <div className="flex h-screen">
-      <UserSidebar />
-      <div className="flex-1 flex items-center justify-center lg:ml-64"><LoadingSpinner size="xl" /></div>
-    </div>
-  );
+  if (isLoading || authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <LoadingSpinner size="xl" />
+      </div>
+    );
+  }
 
-  if (!vote) return (
-    <div className="flex h-screen">
-      <UserSidebar />
-      <div className="flex-1 flex items-center justify-center lg:ml-64 text-gray-400">Vote not found</div>
-    </div>
-  );
+  if (!vote) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <FiBarChart2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
+          <p className="text-lg font-semibold">Vote not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Members-only gate: vote doesn't allow non-members and user isn't logged in
+  if (!vote.allowNonMembers && !isMember) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+            <span className="text-white font-black text-sm">E</span>
+          </div>
+          <span className="font-black text-gray-900 text-lg">EOPANSE</span>
+        </header>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-10 text-center max-w-md w-full">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <FiLock className="h-8 w-8 text-gray-400" />
+            </div>
+            <h2 className="text-xl font-black text-gray-900 mb-2">Members Only</h2>
+            <p className="text-gray-500 mb-6">This vote is for members only. Please log in to participate.</p>
+            <Link to={`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`} className="btn-primary inline-flex items-center gap-2 px-6 py-3">
+              Login to Vote
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isActive = vote.status === 'active';
   const isEnded = vote.status === 'ended';
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <UserSidebar />
-      <main className="flex-1 lg:ml-64 pt-14 lg:pt-0">
-        <div className="p-6 lg:p-8 max-w-4xl">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-6">
-            <Link to="/dashboard/votes" className="p-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
-              <FiArrowLeft className="h-5 w-5 text-gray-600" />
-            </Link>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-2xl font-black text-gray-900">{vote.title}</h1>
-                <Badge status={vote.status} />
-                {vote.isFree && <Badge status="free" label="Free" />}
-              </div>
-              {vote.description && <p className="text-gray-500 mt-1">{vote.description}</p>}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-black text-sm">E</span>
             </div>
+            <span className="font-black text-gray-900 text-lg">EOPANSE</span>
           </div>
+          <div className="flex items-center gap-3">
+            {isMember ? (
+              <span className="text-sm text-gray-500">Voting as <span className="font-semibold text-gray-800">{user.name}</span></span>
+            ) : (
+              <Link to="/login" className="text-sm text-primary-600 font-medium hover:underline">Login as Member</Link>
+            )}
+          </div>
+        </div>
+      </header>
 
-          {/* Vote Info */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Vote Title Banner */}
+      <div className="bg-white border-b border-gray-100">
+        <div className="max-w-4xl mx-auto px-6 py-6">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-black text-gray-900">{vote.title}</h1>
+            <Badge status={vote.status} />
+            {isFreeForUser && <Badge status="free" label="Free" />}
+            {!isMember && vote.allowNonMembers && (
+              <span className="text-xs bg-blue-50 text-blue-600 font-medium px-2 py-0.5 rounded-full">Open to Non-Members</span>
+            )}
+          </div>
+          {vote.description && <p className="text-gray-500 mt-2">{vote.description}</p>}
+        </div>
+      </div>
+
+      <main className="flex-1">
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-8">
             <div className="card text-center">
               <FiBarChart2 className="h-5 w-5 text-purple-600 mx-auto mb-1" />
               <p className="font-black text-lg text-gray-900">{totalVotes}</p>
@@ -135,10 +240,10 @@ const VotePage = () => {
               <p className="text-xs text-gray-500">{isActive ? 'Time Left' : 'Ended'}</p>
             </div>
             <div className="card text-center">
-              <p className={`font-black text-lg ${vote.isFree ? 'text-green-600' : 'text-purple-600'}`}>
-                {vote.isFree ? 'FREE' : formatCurrency(vote.pricePerVote)}
+              <p className={`font-black text-lg ${isFreeForUser ? 'text-green-600' : 'text-purple-600'}`}>
+                {isFreeForUser ? 'FREE' : formatCurrency(priceForUser)}
               </p>
-              <p className="text-xs text-gray-500">Per Vote</p>
+              <p className="text-xs text-gray-500">Per Vote{!isMember && ' (Non-Member)'}</p>
             </div>
           </div>
 
@@ -152,7 +257,7 @@ const VotePage = () => {
                   </div>
                   <h2 className="text-xl font-black text-gray-900 mb-2">Vote Submitted!</h2>
                   <p className="text-gray-500 mb-4">Your vote has been recorded successfully.</p>
-                  {!vote.isFree && <p className="text-purple-600 font-semibold">Amount: {formatCurrency(cost)}</p>}
+                  {!isFreeForUser && <p className="text-purple-600 font-semibold">Amount: {formatCurrency(cost)}</p>}
                   <button onClick={() => setVoted(false)} className="btn-secondary mt-4">Vote Again</button>
                 </div>
               ) : (
@@ -170,9 +275,7 @@ const VotePage = () => {
                         <div
                           key={opt.id}
                           onClick={() => isActive && setSelectedOption(opt.id)}
-                          className={`p-4 rounded-xl border-2 transition-all ${
-                            isActive ? 'cursor-pointer' : ''
-                          } ${
+                          className={`p-4 rounded-xl border-2 transition-all ${isActive ? 'cursor-pointer' : ''} ${
                             selectedOption === opt.id
                               ? 'border-primary-600 bg-primary-50'
                               : 'border-gray-200 hover:border-gray-300 bg-white'
@@ -208,9 +311,24 @@ const VotePage = () => {
                     })}
                   </div>
 
-                  {isActive && !voted && (
+                  {isActive && (
                     <div>
-                      {!vote.isFree && (
+                      {/* Email input for non-member paid votes */}
+                      {!isMember && !isFreeForUser && (
+                        <div className="mb-4">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Your Email Address <span className="text-red-500">*</span></label>
+                          <input
+                            type="email"
+                            value={voterEmail}
+                            onChange={(e) => setVoterEmail(e.target.value)}
+                            className="input-field"
+                            placeholder="you@example.com"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">Required to process payment</p>
+                        </div>
+                      )}
+
+                      {!isFreeForUser && (
                         <div className="mb-4">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Number of Votes</label>
                           <div className="flex items-center gap-3">
@@ -221,8 +339,13 @@ const VotePage = () => {
                           </div>
                         </div>
                       )}
-                      {vote.isFree ? (
-                        <button onClick={handleVote} disabled={castMut.isPending || !selectedOption} className="btn-primary w-full py-3 text-center">
+
+                      {isFreeForUser ? (
+                        <button
+                          onClick={handleVote}
+                          disabled={castMut.isPending || !selectedOption}
+                          className="btn-primary w-full py-3 text-center"
+                        >
                           {castMut.isPending ? 'Casting Vote...' : 'Cast Free Vote'}
                         </button>
                       ) : (
@@ -282,8 +405,13 @@ const VotePage = () => {
           </div>
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-4 text-center">
+        <p className="text-xs text-gray-400">Powered by <span className="font-semibold text-gray-600">EOPANSE</span></p>
+      </footer>
     </div>
   );
 };
 
-export default VotePage;
+export default PublicVotePage;

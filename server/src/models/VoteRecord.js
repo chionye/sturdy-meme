@@ -19,7 +19,7 @@ const VoteRecord = sequelize.define('VoteRecord', {
   },
   userId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     field: 'user_id',
   },
   amount: {
@@ -33,6 +33,11 @@ const VoteRecord = sequelize.define('VoteRecord', {
   transactionRef: {
     type: DataTypes.STRING,
     field: 'transaction_ref',
+  },
+  voterEmail: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    field: 'voter_email',
   },
 }, {
   tableName: 'vote_records',

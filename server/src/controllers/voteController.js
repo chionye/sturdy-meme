@@ -49,10 +49,10 @@ const castVote = async (req, res) => {
     const vote = await Vote.findByPk(voteId);
     if (!vote) return res.status(404).json({ message: 'Vote not found' });
     if (vote.status !== 'active') return res.status(400).json({ message: 'This vote is not active' });
-
-    const now = new Date();
-    if (now < new Date(vote.startDate)) return res.status(400).json({ message: 'Vote has not started yet' });
-    if (now > new Date(vote.endDate)) return res.status(400).json({ message: 'Vote has ended' });
+    if (new Date() > new Date(vote.endDate)) {
+      await vote.update({ status: 'ended' });
+      return res.status(400).json({ message: 'This vote has ended' });
+    }
 
     const option = await VoteOption.findOne({ where: { id: voteOptionId, voteId } });
     if (!option) return res.status(404).json({ message: 'Vote option not found' });
@@ -80,7 +80,7 @@ const castVote = async (req, res) => {
         return res.status(400).json({ message: 'Payment verification failed. Please complete payment first.' });
       }
 
-      const amountPaid = paystackResult.data.amount / 100;
+      const amountPaid = paystackResult.data.amount; // Flutterwave returns naira
       if (amountPaid < amount) {
         return res.status(400).json({ message: `Incomplete payment. Expected ₦${amount}, got ₦${amountPaid}` });
       }
@@ -106,6 +106,85 @@ const castVote = async (req, res) => {
     const records = [];
     for (let i = 0; i < quantity; i++) {
       records.push({ voteId, voteOptionId, userId, amount: vote.isFree ? 0 : vote.pricePerVote, transactionRef });
+    }
+    await VoteRecord.bulkCreate(records);
+
+    // Update option vote count
+    await option.increment('totalVotes', { by: quantity });
+
+    res.json({ message: `Successfully cast ${quantity} vote(s)`, amount });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Cast a vote as a non-member (no auth required)
+const castPublicVote = async (req, res) => {
+  try {
+    const { voteId, voteOptionId, quantity = 1, transactionRef, voterEmail } = req.body;
+
+    const vote = await Vote.findByPk(voteId);
+    if (!vote) return res.status(404).json({ message: 'Vote not found' });
+    if (vote.status !== 'active') return res.status(400).json({ message: 'This vote is not active' });
+    if (!vote.allowNonMembers) return res.status(403).json({ message: 'This vote is for members only' });
+    if (new Date() > new Date(vote.endDate)) {
+      await vote.update({ status: 'ended' });
+      return res.status(400).json({ message: 'This vote has ended' });
+    }
+
+    const now = new Date();
+    if (now < new Date(vote.startDate)) return res.status(400).json({ message: 'Vote has not started yet' });
+    if (now > new Date(vote.endDate)) return res.status(400).json({ message: 'Vote has ended' });
+
+    const option = await VoteOption.findOne({ where: { id: voteOptionId, voteId } });
+    if (!option) return res.status(404).json({ message: 'Vote option not found' });
+
+    const amount = vote.nonMemberIsFree ? 0 : vote.nonMemberPricePerVote * quantity;
+
+    // If paid vote, verify payment via Paystack
+    if (!vote.nonMemberIsFree && amount > 0) {
+      if (!transactionRef) {
+        return res.status(400).json({ message: 'Payment reference required' });
+      }
+
+      const paystackResult = await verifyPayment(transactionRef);
+      if (!paystackResult.status || paystackResult.data?.status !== 'success') {
+        return res.status(400).json({ message: 'Payment verification failed. Please complete payment first.' });
+      }
+
+      const amountPaid = paystackResult.data.amount; // Flutterwave returns naira
+      if (amountPaid < amount) {
+        return res.status(400).json({ message: `Incomplete payment. Expected ₦${amount}, got ₦${amountPaid}` });
+      }
+
+      // Prevent double-use of same reference
+      const existing = await Payment.findOne({ where: { reference: transactionRef } });
+      if (existing) {
+        return res.status(400).json({ message: 'Payment reference already used' });
+      }
+
+      await Payment.create({
+        userId: null,
+        amount,
+        type: 'vote',
+        reference: transactionRef,
+        status: 'completed',
+        description: `Vote (non-member): ${vote.title}`,
+        metadata: { voteId, voteOptionId, voterEmail },
+      });
+    }
+
+    // Create vote records (one per vote)
+    const records = [];
+    for (let i = 0; i < quantity; i++) {
+      records.push({
+        voteId,
+        voteOptionId,
+        userId: null,
+        voterEmail: voterEmail || null,
+        amount: vote.nonMemberIsFree ? 0 : vote.nonMemberPricePerVote,
+        transactionRef: transactionRef || null,
+      });
     }
     await VoteRecord.bulkCreate(records);
 
@@ -196,4 +275,19 @@ const resolveVotingLink = async (req, res) => {
   }
 };
 
-module.exports = { getPublicVotes, getVoteByToken, castVote, getUserVoteHistory, getVoteLeaderboard, resolveVotingLink };
+// Resolve option share token → return vote token + pre-selected option id
+const resolveOptionToken = async (req, res) => {
+  try {
+    const option = await VoteOption.findOne({
+      where: { shareToken: req.params.optionToken },
+      include: [{ model: Vote, as: 'vote', attributes: ['id', 'shareToken', 'status'] }],
+    });
+    if (!option) return res.status(404).json({ message: 'Invalid link' });
+    if (option.vote.status === 'cancelled') return res.status(400).json({ message: 'This vote has been cancelled' });
+    res.json({ voteToken: option.vote.shareToken, preSelectedOptionId: option.id });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { getPublicVotes, getVoteByToken, castVote, castPublicVote, getUserVoteHistory, getVoteLeaderboard, resolveVotingLink, resolveOptionToken };

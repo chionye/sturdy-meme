@@ -1,3 +1,5 @@
+process.env.TZ = 'Africa/Lagos';
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -10,6 +12,9 @@ const adminRoutes = require('./routes/admin');
 const voteRoutes = require('./routes/votes');
 
 const app = express();
+
+// Trust cPanel's reverse proxy
+app.set('trust proxy', 1);
 
 // Security
 app.use(helmet());

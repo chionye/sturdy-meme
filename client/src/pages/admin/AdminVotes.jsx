@@ -15,6 +15,7 @@ import { FiPlus, FiEdit, FiTrash2, FiBarChart2, FiCopy } from 'react-icons/fi';
 const emptyVote = {
   title: '', description: '', startDate: '', endDate: '', pricePerVote: '', isFree: false,
   maxVotesPerUser: '', category: '', status: 'draft',
+  allowNonMembers: false, nonMemberPricePerVote: '', nonMemberIsFree: true,
   options: [{ title: '', description: '', image: '' }, { title: '', description: '', image: '' }],
 };
 
@@ -60,6 +61,30 @@ const VoteForm = ({ form, setForm, onSubmit, loading, editMode, onCancel }) => (
           <span className="text-sm font-medium text-gray-700">Free Vote</span>
         </label>
       </div>
+    </div>
+
+    <div className="border border-gray-200 rounded-xl p-4 space-y-4">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" checked={form.allowNonMembers} onChange={(e) => setForm({ ...form, allowNonMembers: e.target.checked })}
+          className="w-4 h-4 text-primary-600 rounded" />
+        <span className="text-sm font-semibold text-gray-700">Allow Non-Members to Vote</span>
+      </label>
+      {form.allowNonMembers && (
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Non-Member Price per Vote (₦)</label>
+            <input type="number" value={form.nonMemberPricePerVote} onChange={(e) => setForm({ ...form, nonMemberPricePerVote: e.target.value })}
+              className="input-field" placeholder="0" disabled={form.nonMemberIsFree} min="0" />
+          </div>
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.nonMemberIsFree} onChange={(e) => setForm({ ...form, nonMemberIsFree: e.target.checked, nonMemberPricePerVote: e.target.checked ? 0 : form.nonMemberPricePerVote })}
+                className="w-4 h-4 text-primary-600 rounded" />
+              <span className="text-sm font-medium text-gray-700">Non-Member Free</span>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
 
     <div className="grid sm:grid-cols-2 gap-4">
@@ -219,7 +244,7 @@ const AdminVotes = () => {
                         <Link to={`/admin/votes/${vote.id}`} className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors" title="View Results">
                           <FiBarChart2 className="h-4 w-4" />
                         </Link>
-                        <button onClick={() => { setForm({ title: vote.title, description: vote.description, startDate: vote.startDate?.slice(0, 16), endDate: vote.endDate?.slice(0, 16), pricePerVote: vote.pricePerVote, isFree: vote.isFree, maxVotesPerUser: vote.maxVotesPerUser || '', category: vote.category || '', status: vote.status, options: [] }); setEditModal(vote.id); }} className="p-2 hover:bg-purple-50 text-purple-600 rounded-lg transition-colors" title="Edit">
+                        <button onClick={() => { setForm({ title: vote.title, description: vote.description, startDate: vote.startDate?.slice(0, 16), endDate: vote.endDate?.slice(0, 16), pricePerVote: vote.pricePerVote, isFree: vote.isFree, maxVotesPerUser: vote.maxVotesPerUser || '', category: vote.category || '', status: vote.status, allowNonMembers: vote.allowNonMembers || false, nonMemberPricePerVote: vote.nonMemberPricePerVote || '', nonMemberIsFree: vote.nonMemberIsFree !== undefined ? vote.nonMemberIsFree : true, options: [] }); setEditModal(vote.id); }} className="p-2 hover:bg-purple-50 text-purple-600 rounded-lg transition-colors" title="Edit">
                           <FiEdit className="h-4 w-4" />
                         </button>
                         <button onClick={() => copyShareLink(vote)} className="p-2 hover:bg-teal-50 text-teal-600 rounded-lg transition-colors" title="Copy Share Link">

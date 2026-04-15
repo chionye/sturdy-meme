@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -12,13 +12,15 @@ const Login = () => {
   const [showPass, setShowPass] = useState(false);
   const { loginAsUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const mutation = useMutation({
     mutationFn: loginUser,
     onSuccess: (res) => {
       loginAsUser(res.data.token, res.data.user);
       toast.success(`Welcome back, ${res.data.user.name}!`);
-      navigate('/dashboard');
+      const redirect = searchParams.get('redirect');
+      navigate(redirect || '/dashboard');
     },
     onError: (err) => toast.error(err.response?.data?.message || 'Login failed'),
   });

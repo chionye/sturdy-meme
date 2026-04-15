@@ -60,6 +60,21 @@ const Vote = sequelize.define('Vote', {
     type: DataTypes.INTEGER,
     field: 'admin_id',
   },
+  allowNonMembers: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    field: 'allow_non_members',
+  },
+  nonMemberPricePerVote: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0,
+    field: 'non_member_price_per_vote',
+  },
+  nonMemberIsFree: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    field: 'non_member_is_free',
+  },
 }, {
   tableName: 'votes',
   timestamps: true,

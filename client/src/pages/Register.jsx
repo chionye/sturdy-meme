@@ -2,43 +2,58 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import usePaystackPayment from '../hooks/usePaystackPayment';
+import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 import { registerUser, verifyRegistrationPayment } from '../api/auth';
 import { getRegistrationFee } from '../api/admin';
 import { NIGERIAN_STATES, formatCurrency } from '../utils';
 import { FiArrowLeft, FiUser, FiMail, FiPhone, FiMapPin, FiEye, FiEyeOff, FiBriefcase, FiLock } from 'react-icons/fi';
 import Logo from '../components/ui/Logo';
+import { FLW_PUBLIC_KEY } from '../constants/config';
 
 const RegistrationPayment = ({ registered, email, fee, onDone }) => {
   const [verifying, setVerifying] = useState(false);
   const [activated, setActivated] = useState(false);
 
-  const config = {
-    reference: registered.paymentRef,
-    email,
-    amount: Math.round(fee * 100), // kobo
-    publicKey: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-    metadata: { userId: registered.userId, userCode: registered.userCode },
-  };
-
-  const initializePayment = usePaystackPayment(config);
-
-  const handlePayment = () => {
-    initializePayment(
-      async (ref) => {
+  const fwConfig = {
+    public_key: FLW_PUBLIC_KEY,
+    tx_ref: registered.paymentRef,
+    amount: fee,
+    currency: "NGN",
+    payment_options: "card,ussd, mobilemoneyghana",
+    customer: {
+      email: email,
+      name: registered.name || "",
+    },
+    customizations: {
+      title: "EOPANSE Registration",
+      description: "Membership registration fee",
+    },
+    callback: async (response) => {
+      if (response.status === "successful" || response.status === "completed") {
         setVerifying(true);
         try {
-          await verifyRegistrationPayment({ reference: ref.reference, userId: registered.userId });
-          toast.success('Payment confirmed! Account activated.');
+          await verifyRegistrationPayment({
+            reference: String(response.transaction_id),
+            userId: registered.userId,
+          });
+          toast.success("Payment confirmed! Account activated.");
           setActivated(true);
+          closePaymentModal();
         } catch (err) {
-          toast.error(err.response?.data?.message || 'Verification failed. Contact admin.');
+          toast.error(
+            err.response?.data?.message ||
+              "Verification failed. Contact admin.",
+          );
         } finally {
           setVerifying(false);
         }
-      },
-      () => toast('Payment cancelled. You can pay later by contacting admin.')
-    );
+      }
+    },
+    onClose: () => {
+      if (!activated) {
+        toast("Payment cancelled. You can pay later by contacting admin.");
+      }
+    },
   };
 
   return (
@@ -72,14 +87,13 @@ const RegistrationPayment = ({ registered, email, fee, onDone }) => {
               </div>
             </div>
 
-            <button
-              onClick={handlePayment}
-              disabled={verifying}
+            <FlutterWaveButton
+              {...fwConfig}
               className="btn-primary w-full py-3 mb-3"
             >
-              {verifying ? 'Verifying Payment...' : `Pay ${formatCurrency(fee)} with Paystack`}
-            </button>
-            <p className="text-xs text-gray-400">Secured by Paystack. Your card details are never stored.</p>
+              {verifying ? 'Verifying Payment...' : `Pay ${formatCurrency(fee)} with Flutterwave`}
+            </FlutterWaveButton>
+            <p className="text-xs text-gray-400">Secured by Flutterwave. Your card details are never stored.</p>
           </>
         )}
       </div>
@@ -250,7 +264,7 @@ const Register = () => {
                 {/* Fee notice */}
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-sm">
                   <p className="font-bold text-purple-800 mb-1">Registration Fee: {formatCurrency(fee)}</p>
-                  <p className="text-purple-600">Payment instructions will be provided after registration. Your account will be activated once payment is confirmed.</p>
+                  <p className="text-purple-600">You will be redirected to a secure Flutterwave payment page after registration. Your account will be activated instantly once payment is completed.</p>
                 </div>
 
                 <button type="submit" disabled={mutation.isPending} className="btn-primary w-full text-center py-3">

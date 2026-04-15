@@ -8,6 +8,9 @@ const {
   getDashboardAnalytics, getFinancials, confirmPayment, updateAdminProfile, getRegistrationFee,
 } = require('../controllers/adminController');
 
+// Public admin routes (no auth required)
+router.get('/settings/registration-fee', getRegistrationFee);
+
 // All admin routes require auth
 router.use(authAdmin);
 
@@ -15,7 +18,6 @@ router.use(authAdmin);
 router.get('/dashboard', getDashboardAnalytics);
 router.get('/financials', getFinancials);
 router.post('/payments/confirm', confirmPayment);
-router.get('/settings/registration-fee', getRegistrationFee);
 router.put('/profile', updateAdminProfile);
 
 // User management

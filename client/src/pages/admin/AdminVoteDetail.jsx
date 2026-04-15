@@ -5,7 +5,8 @@ import AdminSidebar from '../../components/layout/AdminSidebar';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import Badge from '../../components/ui/Badge';
 import { formatDate, formatCurrency, timeRemaining } from '../../utils';
-import { FiArrowLeft, FiTrendingUp, FiAward, FiDollarSign, FiUsers, FiPrinter } from 'react-icons/fi';
+import { FiArrowLeft, FiTrendingUp, FiAward, FiDollarSign, FiUsers, FiPrinter, FiCopy } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
 const COLORS = ['#7c3aed', '#4f46e5', '#0891b2', '#059669', '#d97706', '#dc2626', '#ec4899', '#8b5cf6'];
@@ -22,6 +23,15 @@ const AdminVoteDetail = () => {
   const d = data?.data;
 
   const handlePrint = () => window.print();
+  const copyOptionLink = (shareToken) => {
+    const link = `${window.location.origin}/vote/o/${shareToken}`;
+    navigator.clipboard.writeText(link).then(() => toast.success('Contestant link copied!'));
+  };
+
+  const copyGeneralLink = () => {
+    const link = `${window.location.origin}/vote/${d?.vote?.shareToken}`;
+    navigator.clipboard.writeText(link).then(() => toast.success('General vote link copied!'));
+  };
 
   if (isLoading) return (
     <div className="flex h-screen">
@@ -49,9 +59,14 @@ const AdminVoteDetail = () => {
               </div>
               {d?.vote?.description && <p className="text-gray-500 mt-1">{d.vote.description}</p>}
             </div>
-            <button onClick={handlePrint} className="btn-secondary flex items-center gap-2 print:hidden">
-              <FiPrinter className="h-4 w-4" /> Print Report
-            </button>
+            <div className="flex gap-2 print:hidden">
+              <button onClick={copyGeneralLink} className="btn-secondary flex items-center gap-2">
+                <FiCopy className="h-4 w-4" /> General Link
+              </button>
+              <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
+                <FiPrinter className="h-4 w-4" /> Print Report
+              </button>
+            </div>
           </div>
 
           {/* Summary Cards */}
@@ -149,6 +164,11 @@ const AdminVoteDetail = () => {
                     <p className="font-bold text-green-600">{formatCurrency(result.revenue)}</p>
                     <p className="text-xs text-gray-500">revenue</p>
                   </div>
+                  {result.shareToken && (
+                    <button onClick={() => copyOptionLink(result.shareToken)} className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors flex-shrink-0" title="Copy contestant link">
+                      <FiCopy className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

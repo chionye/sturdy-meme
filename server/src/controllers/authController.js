@@ -27,14 +27,10 @@ const registerUser = async (req, res) => {
     const stateCode = getStateCode(state);
     if (!stateCode) return res.status(400).json({ message: 'Invalid state selected' });
 
-    // Count users from same state to generate unique code
-    const stateUserCount = await User.count({ where: { stateCode } });
-    const userCode = `${stateCode}${stateUserCount + 1}`;
-
     // Generate voting link token
     const votingToken = uuidv4();
-    const votingLink = `${process.env.CLIENT_URL}/vote-link/${votingToken}`;
 
+    // afterCreate hook sets userCode = stateCode + id automatically
     const user = await User.create({
       name,
       email,
@@ -45,10 +41,12 @@ const registerUser = async (req, res) => {
       city,
       state,
       stateCode,
-      userCode,
+      userCode: 'TEMP',
       votingLink: votingToken,
       status: 'pending',
     });
+
+    const userCode = `${stateCode}${user.id}`;
 
     // Create pending payment record
     const ref = `REG-${Date.now()}-${user.id}`;
@@ -61,7 +59,7 @@ const registerUser = async (req, res) => {
       description: 'Registration fee',
     });
 
-    await sendRegistrationPendingEmail(user);
+    sendRegistrationPendingEmail(user).catch((e) => console.error('Email error:', e.message));
 
     res.status(201).json({
       message: 'Registration successful. Complete payment to activate your account.',
@@ -178,7 +176,7 @@ const verifyRegistrationPayment = async (req, res) => {
       return res.status(400).json({ message: 'Payment not successful. Please try again.' });
     }
 
-    const amountPaid = result.data.amount / 100; // Paystack returns kobo
+    const amountPaid = result.data.amount; // Flutterwave returns naira
     const expectedFee = parseFloat(process.env.REGISTRATION_FEE || 5000);
     if (amountPaid < expectedFee) {
       return res.status(400).json({ message: `Incomplete payment. Expected ${expectedFee}, got ${amountPaid}` });

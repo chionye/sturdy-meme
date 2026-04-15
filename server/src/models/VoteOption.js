@@ -27,9 +27,22 @@ const VoteOption = sequelize.define('VoteOption', {
     defaultValue: 0,
     field: 'total_votes',
   },
+  shareToken: {
+    type: DataTypes.STRING,
+    unique: true,
+    field: 'share_token',
+  },
 }, {
   tableName: 'vote_options',
   timestamps: true,
+  hooks: {
+    beforeCreate: (option) => {
+      if (!option.shareToken) {
+        const { v4: uuidv4 } = require('uuid');
+        option.shareToken = uuidv4();
+      }
+    },
+  },
 });
 
 module.exports = VoteOption;
