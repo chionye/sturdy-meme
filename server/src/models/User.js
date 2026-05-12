@@ -66,6 +66,42 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     field: 'profile_image',
   },
+  cacNumber: {
+    type: DataTypes.STRING,
+    field: 'cac_number',
+  },
+  cacCertificate: {
+    type: DataTypes.STRING,
+    field: 'cac_certificate',
+  },
+  guarantor1Name: {
+    type: DataTypes.STRING,
+    field: 'guarantor_1_name',
+  },
+  guarantor1Email: {
+    type: DataTypes.STRING,
+    field: 'guarantor_1_email',
+  },
+  guarantor1Code: {
+    type: DataTypes.STRING,
+    field: 'guarantor_1_code',
+  },
+  guarantor2Name: {
+    type: DataTypes.STRING,
+    field: 'guarantor_2_name',
+  },
+  guarantor2Email: {
+    type: DataTypes.STRING,
+    field: 'guarantor_2_email',
+  },
+  guarantor2Code: {
+    type: DataTypes.STRING,
+    field: 'guarantor_2_code',
+  },
+  whatsappNumber: {
+    type: DataTypes.STRING,
+    field: 'whatsapp_number',
+  },
 }, {
   tableName: 'users',
   timestamps: true,

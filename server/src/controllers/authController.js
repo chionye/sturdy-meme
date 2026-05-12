@@ -15,7 +15,9 @@ const generateToken = (id, role = 'user') => {
 // User Registration
 const registerUser = async (req, res) => {
   try {
-    const { name, email, phone, password, businessName, address, city, state } = req.body;
+    const { name, email, phone, password, businessName, address, city, state,
+      cacNumber, guarantor1Name, guarantor1Email, guarantor1Code,
+      guarantor2Name, guarantor2Email, guarantor2Code, whatsappNumber } = req.body;
 
     if (!name || !email || !phone || !password || !businessName || !address || !city || !state) {
       return res.status(400).json({ message: 'All fields are required' });
@@ -30,25 +32,24 @@ const registerUser = async (req, res) => {
     // Generate voting link token
     const votingToken = uuidv4();
 
-    // afterCreate hook sets userCode = stateCode + id automatically
-    const user = await User.create({
-      name,
-      email,
-      phone,
-      password,
-      businessName,
-      address,
-      city,
-      state,
-      stateCode,
-      userCode: 'TEMP',
-      votingLink: votingToken,
-      status: 'pending',
-    });
+    const userData = {
+      name, email, phone, password, businessName, address, city, state,
+      stateCode, userCode: 'TEMP', votingLink: votingToken, status: 'pending',
+    };
 
+    if (cacNumber) userData.cacNumber = cacNumber;
+    if (req.file) userData.cacCertificate = `/uploads/${req.file.filename}`;
+    if (guarantor1Name) userData.guarantor1Name = guarantor1Name;
+    if (guarantor1Email) userData.guarantor1Email = guarantor1Email;
+    if (guarantor1Code) userData.guarantor1Code = guarantor1Code;
+    if (guarantor2Name) userData.guarantor2Name = guarantor2Name;
+    if (guarantor2Email) userData.guarantor2Email = guarantor2Email;
+    if (guarantor2Code) userData.guarantor2Code = guarantor2Code;
+    if (whatsappNumber) userData.whatsappNumber = whatsappNumber;
+
+    const user = await User.create(userData);
     const userCode = `${stateCode}${user.id}`;
 
-    // Create pending payment record
     const ref = `REG-${Date.now()}-${user.id}`;
     await Payment.create({
       userId: user.id,
@@ -155,6 +156,16 @@ const getMe = async (req, res) => {
     userCode: user.userCode,
     votingLink: user.votingLink,
     status: user.status,
+    profileImage: user.profileImage,
+    cacNumber: user.cacNumber,
+    cacCertificate: user.cacCertificate,
+    guarantor1Name: user.guarantor1Name,
+    guarantor1Email: user.guarantor1Email,
+    guarantor1Code: user.guarantor1Code,
+    guarantor2Name: user.guarantor2Name,
+    guarantor2Email: user.guarantor2Email,
+    guarantor2Code: user.guarantor2Code,
+    whatsappNumber: user.whatsappNumber,
     createdAt: user.createdAt,
   });
 };

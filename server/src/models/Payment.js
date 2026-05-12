@@ -17,7 +17,7 @@ const Payment = sequelize.define('Payment', {
     allowNull: false,
   },
   type: {
-    type: DataTypes.ENUM('registration', 'vote'),
+    type: DataTypes.ENUM('registration', 'vote', 'conference_fee', 'yearly_dues', 'funeral_levy', 'other'),
     allowNull: false,
   },
   reference: {

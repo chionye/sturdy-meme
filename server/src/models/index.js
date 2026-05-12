@@ -5,8 +5,10 @@ const Vote = require('./Vote');
 const VoteOption = require('./VoteOption');
 const VoteRecord = require('./VoteRecord');
 const Payment = require('./Payment');
+const Executive = require('./Executive');
+const Event = require('./Event');
+const HeroSlide = require('./HeroSlide');
 
-// Associations
 Vote.hasMany(VoteOption, { foreignKey: 'vote_id', as: 'options' });
 VoteOption.belongsTo(Vote, { foreignKey: 'vote_id', as: 'vote' });
 
@@ -25,4 +27,4 @@ Payment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Admin.hasMany(Vote, { foreignKey: 'admin_id', as: 'votes' });
 Vote.belongsTo(Admin, { foreignKey: 'admin_id', as: 'admin' });
 
-module.exports = { sequelize, Admin, User, Vote, VoteOption, VoteRecord, Payment };
+module.exports = { sequelize, Admin, User, Vote, VoteOption, VoteRecord, Payment, Executive, Event, HeroSlide };

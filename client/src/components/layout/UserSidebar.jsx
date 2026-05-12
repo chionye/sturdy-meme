@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { FiGrid, FiCheckSquare, FiClock, FiUser, FiLogOut, FiMenu, FiX } from 'react-icons/fi';
+import { FiGrid, FiCheckSquare, FiClock, FiUser, FiLogOut, FiMenu, FiX, FiDollarSign } from 'react-icons/fi';
 import Logo from '../ui/Logo';
 
 const navItems = [
   { to: '/dashboard', icon: FiGrid, label: 'Dashboard' },
   { to: '/dashboard/votes', icon: FiCheckSquare, label: 'Active Votes' },
   { to: '/dashboard/history', icon: FiClock, label: 'Vote History' },
+  { to: '/dashboard/payments', icon: FiDollarSign, label: 'Payments' },
   { to: '/dashboard/profile', icon: FiUser, label: 'My Profile' },
 ];
 

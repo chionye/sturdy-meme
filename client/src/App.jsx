@@ -10,6 +10,9 @@ import Register from './pages/Register';
 import VoteLinkPage from './pages/VoteLinkPage';
 import PublicVotePage from './pages/PublicVotePage';
 import ContestantLinkPage from './pages/ContestantLinkPage';
+import Constitution from './pages/Constitution';
+import About from './pages/About';
+import EventDetail from './pages/EventDetail';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -17,12 +20,16 @@ import AdminVotes from './pages/admin/AdminVotes';
 import AdminVoteDetail from './pages/admin/AdminVoteDetail';
 import AdminFinancials from './pages/admin/AdminFinancials';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminExecutives from './pages/admin/AdminExecutives';
+import AdminEvents from './pages/admin/AdminEvents';
+import AdminHeroSlides from './pages/admin/AdminHeroSlides';
 
 import UserDashboard from './pages/user/UserDashboard';
 import UserVotes from './pages/user/UserVotes';
 import VotePage from './pages/user/VotePage';
 import VoteHistory from './pages/user/VoteHistory';
 import UserProfile from './pages/user/UserProfile';
+import UserPayments from './pages/user/UserPayments';
 
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
@@ -62,6 +69,9 @@ const AppRoutes = () => {
       <Route path="/vote-link/:token" element={<VoteLinkPage />} />
       <Route path="/vote/o/:optionToken" element={<ContestantLinkPage />} />
       <Route path="/vote/:token" element={<PublicVotePage />} />
+      <Route path="/constitution" element={<Constitution />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/events/:id" element={<EventDetail />} />
 
       {/* User Dashboard */}
       <Route path="/dashboard" element={<ProtectedUser><UserDashboard /></ProtectedUser>} />
@@ -69,6 +79,7 @@ const AppRoutes = () => {
       <Route path="/dashboard/votes/:token" element={<ProtectedUser><VotePage /></ProtectedUser>} />
       <Route path="/dashboard/history" element={<ProtectedUser><VoteHistory /></ProtectedUser>} />
       <Route path="/dashboard/profile" element={<ProtectedUser><UserProfile /></ProtectedUser>} />
+      <Route path="/dashboard/payments" element={<ProtectedUser><UserPayments /></ProtectedUser>} />
 
       {/* Admin Dashboard */}
       <Route path="/admin/dashboard" element={<ProtectedAdmin><AdminDashboard /></ProtectedAdmin>} />
@@ -77,6 +88,9 @@ const AppRoutes = () => {
       <Route path="/admin/votes/:id" element={<ProtectedAdmin><AdminVoteDetail /></ProtectedAdmin>} />
       <Route path="/admin/financials" element={<ProtectedAdmin><AdminFinancials /></ProtectedAdmin>} />
       <Route path="/admin/settings" element={<ProtectedAdmin><AdminSettings /></ProtectedAdmin>} />
+      <Route path="/admin/executives" element={<ProtectedAdmin><AdminExecutives /></ProtectedAdmin>} />
+      <Route path="/admin/events" element={<ProtectedAdmin><AdminEvents /></ProtectedAdmin>} />
+      <Route path="/admin/hero-slides" element={<ProtectedAdmin><AdminHeroSlides /></ProtectedAdmin>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

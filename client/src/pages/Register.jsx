@@ -6,7 +6,7 @@ import { FlutterWaveButton, closePaymentModal } from 'flutterwave-react-v3';
 import { registerUser, verifyRegistrationPayment } from '../api/auth';
 import { getRegistrationFee } from '../api/admin';
 import { NIGERIAN_STATES, formatCurrency } from '../utils';
-import { FiArrowLeft, FiUser, FiMail, FiPhone, FiMapPin, FiEye, FiEyeOff, FiBriefcase, FiLock } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiMail, FiPhone, FiMapPin, FiEye, FiEyeOff, FiBriefcase, FiLock, FiFileText, FiUpload, FiUsers, FiMessageCircle } from 'react-icons/fi';
 import Logo from '../components/ui/Logo';
 import { FLW_PUBLIC_KEY } from '../constants/config';
 
@@ -18,41 +18,36 @@ const RegistrationPayment = ({ registered, email, fee, onDone }) => {
     public_key: FLW_PUBLIC_KEY,
     tx_ref: registered.paymentRef,
     amount: fee,
-    currency: "NGN",
-    payment_options: "card,ussd, mobilemoneyghana",
+    currency: 'NGN',
+    payment_options: 'card,ussd,mobilemoneyghana',
     customer: {
       email: email,
-      name: registered.name || "",
+      name: registered.name || '',
     },
     customizations: {
-      title: "EOPANSE Registration",
-      description: "Membership registration fee",
+      title: 'EOPANSE Registration',
+      description: 'Membership registration fee',
     },
     callback: async (response) => {
-      if (response.status === "successful" || response.status === "completed") {
+      if (response.status === 'successful' || response.status === 'completed') {
         setVerifying(true);
         try {
           await verifyRegistrationPayment({
             reference: String(response.transaction_id),
             userId: registered.userId,
           });
-          toast.success("Payment confirmed! Account activated.");
+          toast.success('Payment confirmed! Account activated.');
           setActivated(true);
           closePaymentModal();
         } catch (err) {
-          toast.error(
-            err.response?.data?.message ||
-              "Verification failed. Contact admin.",
-          );
+          toast.error(err.response?.data?.message || 'Verification failed. Contact admin.');
         } finally {
           setVerifying(false);
         }
       }
     },
     onClose: () => {
-      if (!activated) {
-        toast("Payment cancelled. You can pay later by contacting admin.");
-      }
+      if (!activated) toast('Payment cancelled. You can pay later by contacting admin.');
     },
   };
 
@@ -62,7 +57,7 @@ const RegistrationPayment = ({ registered, email, fee, onDone }) => {
         {activated ? (
           <>
             <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">
-              <span className="text-green-600 text-4xl">✓</span>
+              <span className="text-green-600 text-4xl">&#10003;</span>
             </div>
             <h2 className="text-2xl font-black text-gray-900 mb-2">Account Activated!</h2>
             <p className="text-gray-600 mb-6">Your payment was confirmed and your account is now active.</p>
@@ -71,11 +66,10 @@ const RegistrationPayment = ({ registered, email, fee, onDone }) => {
         ) : (
           <>
             <div className="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mx-auto mb-6">
-              <span className="text-purple-600 text-4xl">🎉</span>
+              <span className="text-purple-600 text-4xl">&#127881;</span>
             </div>
             <h2 className="text-2xl font-black text-gray-900 mb-2">Almost Done!</h2>
             <p className="text-gray-600 mb-6">Complete your registration fee payment to activate your account.</p>
-
             <div className="bg-purple-50 rounded-xl p-5 mb-6 text-left space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Member Code</span>
@@ -86,11 +80,7 @@ const RegistrationPayment = ({ registered, email, fee, onDone }) => {
                 <span className="font-bold text-gray-900">{formatCurrency(fee)}</span>
               </div>
             </div>
-
-            <FlutterWaveButton
-              {...fwConfig}
-              className="btn-primary w-full py-3 mb-3"
-            >
+            <FlutterWaveButton {...fwConfig} className="btn-primary w-full py-3 mb-3">
               {verifying ? 'Verifying Payment...' : `Pay ${formatCurrency(fee)} with Flutterwave`}
             </FlutterWaveButton>
             <p className="text-xs text-gray-400">Secured by Flutterwave. Your card details are never stored.</p>
@@ -107,7 +97,10 @@ const Register = () => {
   const [form, setForm] = useState({
     name: '', email: '', phone: '', password: '', confirmPassword: '',
     businessName: '', address: '', city: '', state: '',
+    cacNumber: '', guarantor1Name: '', guarantor1Email: '', guarantor1Code: '',
+    guarantor2Name: '', guarantor2Email: '', guarantor2Code: '', whatsappNumber: '',
   });
+  const [cacFile, setCacFile] = useState(null);
   const [step, setStep] = useState(1);
   const [registered, setRegistered] = useState(null);
 
@@ -118,7 +111,7 @@ const Register = () => {
   const fee = feeData?.data?.fee || 5000;
 
   const mutation = useMutation({
-    mutationFn: registerUser,
+    mutationFn: (formData) => registerUser(formData),
     onSuccess: (res) => setRegistered(res.data),
     onError: (err) => toast.error(err.response?.data?.message || 'Registration failed'),
   });
@@ -129,8 +122,14 @@ const Register = () => {
       toast.error('Passwords do not match');
       return;
     }
-    const { confirmPassword, ...data } = form;
-    mutation.mutate(data);
+
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, val]) => {
+      if (val) formData.append(key, val);
+    });
+    if (cacFile) formData.append('file', cacFile);
+
+    mutation.mutate(formData);
   };
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
@@ -147,7 +146,6 @@ const Register = () => {
         </Link>
 
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-          {/* Header */}
           <div className="bg-gradient-to-r from-purple-700 to-indigo-700 p-8 text-white">
             <div className="flex items-center gap-4 mb-2">
               <Logo size="md" className="brightness-0 invert" />
@@ -157,10 +155,12 @@ const Register = () => {
             <div className="mt-4 flex items-center gap-2">
               <div className={`h-1.5 rounded-full flex-1 ${step >= 1 ? 'bg-white' : 'bg-white/30'}`} />
               <div className={`h-1.5 rounded-full flex-1 ${step >= 2 ? 'bg-white' : 'bg-white/30'}`} />
+              <div className={`h-1.5 rounded-full flex-1 ${step >= 3 ? 'bg-white' : 'bg-white/30'}`} />
             </div>
             <div className="flex justify-between text-xs text-purple-300 mt-1">
               <span>Personal Info</span>
-              <span>Business Details</span>
+              <span>Business &amp; CAC</span>
+              <span>Guarantors</span>
             </div>
           </div>
 
@@ -168,7 +168,6 @@ const Register = () => {
             {step === 1 && (
               <div className="space-y-5">
                 <h2 className="text-lg font-bold text-gray-900 mb-6">Personal Information</h2>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name *</label>
@@ -185,7 +184,6 @@ const Register = () => {
                     </div>
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number *</label>
                   <div className="relative">
@@ -193,13 +191,12 @@ const Register = () => {
                     <input type="tel" value={form.phone} onChange={set('phone')} className="input-field pl-9" placeholder="08012345678" required />
                   </div>
                 </div>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Password *</label>
                     <div className="relative">
                       <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')} className="input-field pl-9 pr-9" placeholder="••••••••" required minLength={6} />
+                      <input type={showPass ? 'text' : 'password'} value={form.password} onChange={set('password')} className="input-field pl-9 pr-9" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required minLength={6} />
                       <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                         {showPass ? <FiEyeOff className="h-4 w-4" /> : <FiEye className="h-4 w-4" />}
                       </button>
@@ -209,13 +206,12 @@ const Register = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password *</label>
                     <div className="relative">
                       <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                      <input type="password" value={form.confirmPassword} onChange={set('confirmPassword')} className="input-field pl-9" placeholder="••••••••" required />
+                      <input type="password" value={form.confirmPassword} onChange={set('confirmPassword')} className="input-field pl-9" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" required />
                     </div>
                   </div>
                 </div>
-
                 <button type="button" onClick={() => { if (!form.name || !form.email || !form.phone || !form.password) { toast.error('Fill all fields'); return; } setStep(2); }} className="btn-primary w-full text-center py-3">
-                  Continue to Business Details →
+                  Continue to Business Details &rarr;
                 </button>
               </div>
             )}
@@ -226,9 +222,8 @@ const Register = () => {
                   <button type="button" onClick={() => setStep(1)} className="text-gray-400 hover:text-gray-600">
                     <FiArrowLeft className="h-5 w-5" />
                   </button>
-                  <h2 className="text-lg font-bold text-gray-900">Business Details</h2>
+                  <h2 className="text-lg font-bold text-gray-900">Business Details &amp; CAC</h2>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Business Name *</label>
                   <div className="relative">
@@ -236,7 +231,6 @@ const Register = () => {
                     <input value={form.businessName} onChange={set('businessName')} className="input-field pl-9" placeholder="Your Business Name" required />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Address *</label>
                   <div className="relative">
@@ -244,7 +238,6 @@ const Register = () => {
                     <textarea value={form.address} onChange={set('address')} className="input-field pl-9 resize-none" rows={3} placeholder="Street address" required />
                   </div>
                 </div>
-
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">City *</label>
@@ -260,8 +253,96 @@ const Register = () => {
                     </select>
                   </div>
                 </div>
+                <div className="border-t border-gray-200 pt-5">
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <FiFileText className="h-5 w-5 text-purple-600" /> CAC Registration
+                  </h3>
+                  <p className="text-xs text-amber-600 font-medium mb-3 bg-amber-50 rounded-lg p-2">
+                    CAC registration must be at least 2 years old
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">CAC Number</label>
+                      <div className="relative">
+                        <FiFileText className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input value={form.cacNumber} onChange={set('cacNumber')} className="input-field pl-9" placeholder="RC-123456" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Upload CAC Certificate</label>
+                      <div className="relative">
+                        <FiUpload className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <input type="file" accept="image/*,.pdf" onChange={(e) => setCacFile(e.target.files[0])} className="input-field pl-9 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-purple-600 pt-2" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="border-t border-gray-200 pt-5">
+                  <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <FiMessageCircle className="h-5 w-5 text-green-600" /> WhatsApp
+                  </h3>
+                  <div className="relative">
+                    <FiMessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input value={form.whatsappNumber} onChange={set('whatsappNumber')} className="input-field pl-9" placeholder="08012345678" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Used to add you to the official EOPANSE WhatsApp group</p>
+                </div>
+                <button type="button" onClick={() => { if (!form.businessName || !form.address || !form.city || !form.state) { toast.error('Fill all required fields'); return; } setStep(3); }} className="btn-primary w-full text-center py-3">
+                  Continue to Guarantors &rarr;
+                </button>
+              </div>
+            )}
 
-                {/* Fee notice */}
+            {step === 3 && (
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 mb-6">
+                  <button type="button" onClick={() => setStep(2)} className="text-gray-400 hover:text-gray-600">
+                    <FiArrowLeft className="h-5 w-5" />
+                  </button>
+                  <h2 className="text-lg font-bold text-gray-900">Guarantors</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">Guarantors must be existing members of EOPANSE.</p>
+
+                <div className="bg-purple-50 rounded-xl p-5 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <FiUsers className="h-4 w-4 text-purple-600" /> Guarantor 1
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                      <input value={form.guarantor1Name} onChange={set('guarantor1Name')} className="input-field" placeholder="Guarantor name" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input type="email" value={form.guarantor1Email} onChange={set('guarantor1Email')} className="input-field" placeholder="guarantor@example.com" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Member Code</label>
+                      <input value={form.guarantor1Code} onChange={set('guarantor1Code')} className="input-field" placeholder="e.g. EN001" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 rounded-xl p-5 space-y-4">
+                  <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                    <FiUsers className="h-4 w-4 text-indigo-600" /> Guarantor 2
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                      <input value={form.guarantor2Name} onChange={set('guarantor2Name')} className="input-field" placeholder="Guarantor name" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                      <input type="email" value={form.guarantor2Email} onChange={set('guarantor2Email')} className="input-field" placeholder="guarantor@example.com" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Member Code</label>
+                      <input value={form.guarantor2Code} onChange={set('guarantor2Code')} className="input-field" placeholder="e.g. EN001" />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-sm">
                   <p className="font-bold text-purple-800 mb-1">Registration Fee: {formatCurrency(fee)}</p>
                   <p className="text-purple-600">You will be redirected to a secure Flutterwave payment page after registration. Your account will be activated instantly once payment is completed.</p>

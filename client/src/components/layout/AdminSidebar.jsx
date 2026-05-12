@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   FiGrid, FiUsers, FiBarChart2, FiDollarSign, FiSettings, FiLogOut,
-  FiCheckSquare, FiMenu, FiX, FiList,
+  FiCheckSquare, FiMenu, FiX, FiList, FiImage, FiCalendar, FiUserCheck,
 } from 'react-icons/fi';
 import Logo from '../ui/Logo';
 
@@ -11,6 +11,9 @@ const navItems = [
   { to: '/admin/dashboard', icon: FiGrid, label: 'Dashboard' },
   { to: '/admin/votes', icon: FiCheckSquare, label: 'Votes' },
   { to: '/admin/users', icon: FiUsers, label: 'Members' },
+  { to: '/admin/executives', icon: FiUserCheck, label: 'Executives' },
+  { to: '/admin/events', icon: FiCalendar, label: 'Events' },
+  { to: '/admin/hero-slides', icon: FiImage, label: 'Hero Slides' },
   { to: '/admin/financials', icon: FiDollarSign, label: 'Financials' },
   { to: '/admin/settings', icon: FiSettings, label: 'Settings' },
 ];
@@ -28,13 +31,11 @@ const AdminSidebar = () => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
-      {/* Brand */}
       <div className="p-5 border-b border-purple-800/30">
         <Logo size="md" className="brightness-0 invert" />
         <p className="text-purple-300 text-xs mt-1 pl-1">Admin Portal</p>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const active = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
@@ -56,7 +57,6 @@ const AdminSidebar = () => {
         })}
       </nav>
 
-      {/* Admin info + logout */}
       <div className="p-4 border-t border-purple-800/30">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
@@ -76,7 +76,6 @@ const AdminSidebar = () => {
 
   return (
     <>
-      {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-purple-700 to-indigo-700 h-14 flex items-center px-4 gap-3">
         <button onClick={() => setMobileOpen(true)} className="text-white">
           <FiMenu className="h-6 w-6" />
@@ -84,7 +83,6 @@ const AdminSidebar = () => {
         <Logo size="xs" className="brightness-0 invert" />
       </div>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
@@ -97,7 +95,6 @@ const AdminSidebar = () => {
         </div>
       )}
 
-      {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-64 bg-gradient-to-b from-purple-700 to-indigo-800 shadow-xl z-20">
         <SidebarContent />
       </div>
